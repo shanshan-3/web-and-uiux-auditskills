@@ -65,30 +65,30 @@ Fix templates with copy-pasteable code for every failing item live in [`skills/w
 
 Install directly to your current project:
 ```bash
-npx skills add shanshan-3/skills
+npx skills add shanshan-3/web-and-uiux-auditskills
 ```
 
 Target a specific agent using the `-a` flag:
 ```bash
 # Claude Code
-npx skills add shanshan-3/skills -a claude-code
+npx skills add shanshan-3/web-and-uiux-auditskills -a claude-code
 
 # Cursor
-npx skills add shanshan-3/skills -a cursor
+npx skills add shanshan-3/web-and-uiux-auditskills -a cursor
 
 # OpenCode
-npx skills add shanshan-3/skills -a opencode
+npx skills add shanshan-3/web-and-uiux-auditskills -a opencode
 ```
 
 Install globally across all projects using `-g`:
 ```bash
-npx skills add shanshan-3/skills -g
+npx skills add shanshan-3/web-and-uiux-auditskills -g
 ```
 
 Or install an individual skill:
 ```bash
-npx skills add shanshan-3/skills --skill ui-ux-audit
-npx skills add shanshan-3/skills --skill website-audit
+npx skills add shanshan-3/web-and-uiux-auditskills --skill ui-ux-audit
+npx skills add shanshan-3/web-and-uiux-auditskills --skill website-audit
 ```
 
 ---
@@ -98,7 +98,7 @@ npx skills add shanshan-3/skills --skill website-audit
 Clone the repository and copy the `skills/` folder to your agent's directory:
 
 ```bash
-git clone https://github.com/shanshan-3/skills.git temp-skills
+git clone https://github.com/shanshan-3/web-and-uiux-auditskills.git temp-skills
 ```
 
 | Agent | Project Scope | Global Scope |
