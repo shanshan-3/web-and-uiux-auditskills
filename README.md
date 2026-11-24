@@ -61,25 +61,56 @@ Fix templates with copy-pasteable code for every failing item live in [`skills/w
 
 ## Installation
 
-**Install both skills into the current project:**
+### Via `npx skills add` (Recommended)
+
+Install directly to your current project:
 ```bash
 npx skills add shanshan-3/skills
 ```
 
-**Install one skill only:**
+Target a specific agent using the `-a` flag:
+```bash
+# Claude Code
+npx skills add shanshan-3/skills -a claude-code
+
+# Cursor
+npx skills add shanshan-3/skills -a cursor
+
+# OpenCode
+npx skills add shanshan-3/skills -a opencode
+```
+
+Install globally across all projects using `-g`:
+```bash
+npx skills add shanshan-3/skills -g
+```
+
+Or install an individual skill:
 ```bash
 npx skills add shanshan-3/skills --skill ui-ux-audit
 npx skills add shanshan-3/skills --skill website-audit
 ```
 
-**Install globally across all workspaces:**
+---
+
+### Manual Installation by Agent
+
+Clone the repository and copy the `skills/` folder to your agent's directory:
+
 ```bash
-npx skills add shanshan-3/skills -g
+git clone https://github.com/shanshan-3/skills.git temp-skills
 ```
 
-**Manual clone:**
+| Agent | Project Scope | Global Scope |
+|---|---|---|
+| **Claude Code** | `cp -r temp-skills/skills/* .claude/skills/` | `cp -r temp-skills/skills/* ~/.claude/skills/` |
+| **Cursor** | `cp -r temp-skills/skills/* .cursor/skills/` | `cp -r temp-skills/skills/* ~/.agents/skills/` |
+| **OpenCode** | `cp -r temp-skills/skills/* .opencode/skills/` | `cp -r temp-skills/skills/* ~/.config/opencode/skills/` |
+| **Codex / Antigravity / Universal** | `cp -r temp-skills/skills/* .agents/skills/` | `cp -r temp-skills/skills/* ~/.agents/skills/` |
+
+Clean up after copying:
 ```bash
-git clone https://github.com/shanshan-3/skills.git ~/.agents/skills
+rm -rf temp-skills
 ```
 
 ---
