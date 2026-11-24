@@ -1,4 +1,4 @@
-# skills
+# Web & UI/UX Audit Skills
 
 > AI coding agent skills that audit websites and web apps against fixed engineering checklists.
 
