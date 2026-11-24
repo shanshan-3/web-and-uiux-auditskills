@@ -29,7 +29,7 @@ flowchart LR
 
 ## Skills
 
-### [`/ui-ux-audit`](ui-ux-audit/SKILL.md)
+### [`/ui-ux-audit`](skills/ui-ux-audit/SKILL.md)
 
 Audits components and pages for interaction polish, form correctness, loading behavior, and user-flow completeness.
 
@@ -43,7 +43,7 @@ Audits components and pages for interaction polish, form correctness, loading be
 
 ---
 
-### [`/website-audit`](website-audit/SKILL.md)
+### [`/website-audit`](skills/website-audit/SKILL.md)
 
 Audits a full web project — located from `package.json`, `index.html`, or a framework config — across five technical categories.
 
@@ -55,22 +55,7 @@ Audits a full web project — located from `package.json`, `index.html`, or a fr
 | Validation & Security | Broken links, rate-limited API routes, server-side Zod validation, Supabase Row-Level Security policies |
 | Animations & Motion | GSAP `ctx.revert()` cleanup, Lenis lifecycle, Three.js resize and RAF disposal, WebGL context loss handling, GPU-only properties, `prefers-reduced-motion` |
 
-Fix templates with copy-pasteable code for every failing item live in [`website-audit/references/fixes.md`](website-audit/references/fixes.md).
-
----
-
-## Directory Structure
-
-```text
-skills/
-├── README.md
-├── ui-ux-audit/
-│   └── SKILL.md
-└── website-audit/
-    ├── SKILL.md
-    └── references/
-        └── fixes.md        ← fix templates for every audit item
-```
+Fix templates with copy-pasteable code for every failing item live in [`skills/website-audit/references/fixes.md`](skills/website-audit/references/fixes.md).
 
 ---
 
