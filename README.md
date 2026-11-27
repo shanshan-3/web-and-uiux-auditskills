@@ -35,11 +35,12 @@ Audits components and pages for interaction polish, form correctness, loading be
 
 | Category | What Gets Checked |
 |---|---|
-| Buttons & Feedback | Submit locks on first tap, frozen button dimensions during loading, 100ms visual feedback, action-oriented labels |
+| Buttons & Feedback | Submit locks on first tap, frozen button dimensions during loading, 100ms visual feedback, action-oriented labels, one clear CTA per screen, all interactive elements wired |
 | Loading States | Skeleton gated on `isLoading` only (not `isFetching`), stale-while-revalidate, splash screen held until auth resolves |
 | Forms & Inputs | Email trimmed and lowercased on `blur`, name fields allow Unicode and apostrophes, `autocomplete` wired, inline `aria-invalid` errors |
 | Media & State | Client-side compression before upload, draft persistence to `sessionStorage`/`localStorage`, UTC storage with local timezone render |
 | Flows & Help | FAQ accordions keyboard-accessible, onboarding has visible skip + step indicator, password reset gives neutral feedback with cooldown |
+| Accessibility & Visual | WCAG AA color contrast (4.5:1 normal text, 3:1 large text), custom branded 404 page with recovery link |
 
 ---
 
@@ -50,12 +51,28 @@ Audits a full web project — located from `package.json`, `index.html`, or a fr
 | Category | What Gets Checked |
 |---|---|
 | Responsiveness | Layout across 320px–1400px, `clamp()` for fluid scaling, 3D canvas hidden below 1100px |
-| Performance | `.webp` images, `.svg` icons, `.woff2` fonts, lazy loading, layout shift prevention, Cloudinary or CDN delivery |
+| Performance | `.webp` images, `.svg` icons, `.woff2` fonts, lazy loading, alt text on all images, layout shift prevention, Cloudinary or CDN delivery |
 | SEO | `<title>`, `<meta description>`, Open Graph tags, `favicon.ico`/`.png`, canonical tags, `robots.txt`, `sitemap.xml` |
-| Validation & Security | Broken links, rate-limited API routes, server-side Zod validation, Supabase Row-Level Security policies |
+| Validation & Security | Broken links, rate-limited API routes, server-side Zod validation, Supabase RLS, exposed API keys scan, HTTPS enforcement, security headers, spam protection |
 | Animations & Motion | GSAP `ctx.revert()` cleanup, Lenis lifecycle, Three.js resize and RAF disposal, WebGL context loss handling, GPU-only properties, `prefers-reduced-motion` |
 
 Fix templates with copy-pasteable code for every failing item live in [`skills/website-audit/references/fixes.md`](skills/website-audit/references/fixes.md).
+
+---
+
+### [`/production-audit`](skills/production-audit/SKILL.md)
+
+Audits a web project for production readiness — legal compliance, analytics, error monitoring, database operations, and auth flows.
+
+| Category | What Gets Checked |
+|---|---|
+| Legal & Privacy | Privacy policy and Terms of Service pages exist and are linked in footer, cookie consent banner blocks non-essential scripts until accepted |
+| Analytics & Monitoring | Analytics configured (GA4, Plausible, PostHog), client + server error monitoring (Sentry), uptime monitoring |
+| Infrastructure & HTTPS | HTTPS enforced, security headers set, no exposed API keys in client code, `.env.example` present |
+| Database & Backend Ops | Connection pooling for serverless, DB backups configured, payment idempotency keys, safe account deletion, private storage buckets |
+| Auth & Critical Flows | Signup, login, and password reset flows complete with neutral error messages, post-auth redirect, session expiry handling, password hashing |
+
+Fix templates live in [`skills/production-audit/references/fixes.md`](skills/production-audit/references/fixes.md).
 
 ---
 
@@ -89,6 +106,7 @@ Or install an individual skill:
 ```bash
 npx skills add shanshan-3/web-and-uiux-auditskills --skill ui-ux-audit
 npx skills add shanshan-3/web-and-uiux-auditskills --skill website-audit
+npx skills add shanshan-3/web-and-uiux-auditskills --skill production-audit
 ```
 
 ---
@@ -125,6 +143,9 @@ In a Claude Code, OpenCode, Codex, Antigravity, or Cursor session:
 ```text
 /website-audit
 ```
+```text
+/production-audit
+```
 
 The agent reads your files, then outputs a table per category:
 
@@ -143,7 +164,7 @@ The agent reads your files, then outputs a table per category:
 
 ## Compatibility
 
-Both skills follow the [Agent Skills open standard](https://agentskills.io/specification). They work with any agent that supports `.agents/skills/` or `.claude/skills/` directories.
+All skills follow the [Agent Skills open standard](https://agentskills.io/specification). They work with any agent that supports `.agents/skills/` or `.claude/skills/` directories.
 
 | Agent | Supported |
 |---|---|

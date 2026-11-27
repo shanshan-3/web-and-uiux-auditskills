@@ -40,6 +40,8 @@ Status legend: ✅ Applied · ❌ Missing · ⚠️ Partial
 | Button dimensions frozen during loading | Width and height do not change when spinner replaces label text |
 | Visual tap feedback within 100ms | Active state defined: `active:scale-[0.98]`, opacity shift, or background highlight |
 | Action-oriented button labels | Labels use verb + noun (`Save Changes`, `Pay $49.00`) — not generic (`Submit`, `OK`, `Continue`) |
+| All interactive elements wired | No dead `onClick={() => {}}` handlers, no `href="#"` placeholder links, no buttons without event handlers |
+| One clear primary CTA per screen | Each screen or hero section has a single visually dominant primary action — not competing primary buttons side by side |
 
 ### 2. Loading States
 | Item | What to check |
@@ -87,3 +89,9 @@ Status legend: ✅ Applied · ❌ Missing · ⚠️ Partial
 | Password reset gives neutral feedback | Submission shows `"If an account exists for this email, a reset link has been sent."` — not `"Email not found"` |
 | Resend button has cooldown | 60-second countdown enforced on resend; button disabled during cooldown |
 | Zero console errors | No unhandled promise rejections, missing React keys, or hydration mismatches |
+
+### 7. Accessibility & Visual
+| Item | What to check |
+|---|---|
+| Color contrast meets WCAG AA | Normal text ≥ 4.5:1 contrast ratio; large text (18px+ or 14px bold) and UI components ≥ 3:1 |
+| Custom 404 page | A branded `not-found` / `404` page exists with a clear link back to the homepage or dashboard — not the default framework 404 |

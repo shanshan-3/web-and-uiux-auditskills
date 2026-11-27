@@ -56,6 +56,7 @@ Scan: CSS files, Tailwind classes, styled-components, or inline styles for break
 | Load only needed font weights | Only declared weights (e.g., 400, 600) are loaded — no wildcard `font-weight: 100 900` unless variable font |
 | Lazy-loaded images | `<img loading="lazy">` or framework equivalent on below-fold images |
 | Declared aspect ratios / fixed dimensions | Every `<img>` has explicit `width` + `height` or `aspect-ratio` to prevent layout shift (CLS) |
+| Alt text on all images | Every `<img>` has descriptive `alt` text; decorative images use `alt=""` explicitly |
 | Image compression (Cloudinary or equivalent) | Remote images served via CDN (Cloudinary, Imgix, Next/Image) with auto-compression |
 | Image preloader / session storage preload | Critical above-fold images preloaded via `<link rel="preload">` or session-storage preload logic |
 | Style preloading | Critical CSS loaded via `<link rel="preload" as="style">` or inlined in `<head>` |
@@ -90,6 +91,10 @@ Scan: `app/layout.*`, `pages/_document.*`, `<head>` components, `/public` direct
 | Button and field validation | Required fields enforced; submit disabled until valid |
 | Error handling | API routes return structured error responses; unhandled rejections do not reach the client as raw stack traces |
 | Row-level security (RLS) | If Supabase/Postgres: RLS enabled on all user-data tables; policies defined for select, insert, update, delete |
+| Exposed API keys or secrets | No hardcoded `sk_live`, `service_role`, `SECRET`, or `PRIVATE` keys in client-side source; all secrets use `process.env` server-side only |
+| HTTPS enforced | Deployment config enforces HTTPS redirect; no mixed-content `http://` asset URLs in source |
+| Security headers | `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Content-Security-Policy` configured via middleware or hosting config |
+| Spam protection on public forms | Contact, signup, or public-facing forms protected by Turnstile, hCaptcha, reCAPTCHA, or honeypot field |
 
 Scan: API route files, middleware config, DB migration files, Supabase dashboard config, form component files.
 

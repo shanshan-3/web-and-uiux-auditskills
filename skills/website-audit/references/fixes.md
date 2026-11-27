@@ -182,6 +182,65 @@ npx linkinator https://localhost:3000 --recurse --skip "^mailto"
 ```
 Fix 404 routes or update stale `href` values.
 
+**Exposed API keys in client code**
+Scan for leaks:
+```bash
+grep -r "sk_live\|service_role\|SECRET\|PRIVATE" --include="*.ts" --include="*.tsx" --include="*.js" src/
+```
+Move to server-side `process.env` (never prefix with `NEXT_PUBLIC_` for secrets).
+
+**HTTPS not enforced / mixed content**
+Search for mixed content:
+```bash
+grep -r "http://" --include="*.ts" --include="*.tsx" --include="*.css" src/
+```
+Replace all asset URLs with `https://` or protocol-relative `//`.
+
+**Missing security headers**
+Next.js — add to `next.config.js`:
+```js
+async headers() {
+  return [{
+    source: '/(.*)',
+    headers: [
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+    ],
+  }];
+}
+```
+
+**No spam protection on public forms**
+Add Cloudflare Turnstile (free):
+```bash
+npm install @marsidev/react-turnstile
+```
+```tsx
+import { Turnstile } from '@marsidev/react-turnstile';
+
+<Turnstile siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!} onSuccess={setToken} />
+```
+Verify server-side:
+```ts
+const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+  method: 'POST',
+  body: JSON.stringify({ secret: process.env.TURNSTILE_SECRET_KEY, response: token }),
+});
+```
+
+**Missing alt text on images**
+Every `<img>` must have `alt`:
+```html
+<!-- Meaningful image -->
+<img src="/team.webp" alt="Team photo at the 2026 company retreat" />
+
+<!-- Decorative image -->
+<img src="/divider.svg" alt="" role="presentation" />
+```
+In Next.js, `next/image` requires `alt` by default — lint will catch missing ones.
+
 ---
 
 ## Animations & Motion
