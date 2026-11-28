@@ -2,6 +2,17 @@
 
 Referenced by `website-audit` SKILL.md. Each section maps to a checklist item and provides a concrete fix.
 
+Secrets in client code, HTTPS enforcement, and security headers are covered by `production-audit` (see its `references/fixes.md`).
+
+## Contents
+
+- Responsiveness
+- Performance
+- SEO
+- Validation & Security
+- Animations & Motion
+- Laravel / PHP equivalents
+
 ---
 
 ## Responsiveness
@@ -15,29 +26,55 @@ padding: clamp(1rem, 4vw, 2.5rem);
 Use https://clamp.font-size.app to generate values from min/max px targets.
 
 **3D canvas not hidden on small screens**
-Wrap canvas in a responsive guard:
+Hiding a canvas with CSS (`display: none`, `hidden min-[1100px]:block`) only hides it visually. The component still mounts, so WebGL still initializes and runs. Do not mount it at all below the breakpoint:
 ```tsx
-// Tailwind
-<div className="hidden min-[1100px]:block">
-  <HeavyCanvas />
-</div>
+'use client';
+import dynamic from 'next/dynamic';
+import { useEffect, useState } from 'react';
 
-// CSS
-@media (max-width: 1099px) { .canvas-wrapper { display: none; } }
+const HeavyCanvas = dynamic(() => import('./HeavyCanvas'), { ssr: false });
+
+export function CanvasGuard() {
+  const [wide, setWide] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1100px)');
+    const update = () => setWide(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  return wide ? <HeavyCanvas /> : null;
+}
 ```
+Outside React, use `matchMedia` the same way and only import and initialize the scene when it matches.
 
 ---
 
 ## Performance
 
 **Images not .webp**
-Batch convert with `sharp` or `cwebp`:
+Convert with `cwebp` (install with `brew install webp` or `sudo apt install webp`):
 ```bash
-npx @squoosh/cli --webp '{}' public/images/*.jpg
-# or
-find public -name "*.png" -exec cwebp {} -o {}.webp \;
+find public -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) -print0 |
+  while IFS= read -r -d '' f; do cwebp -q 80 "$f" -o "${f%.*}.webp"; done
 ```
-Update all `<img src>` and CSS `url()` references.
+Or with `sharp` (Node 18.17+):
+```js
+// scripts/to-webp.mjs
+import fs from 'node:fs';
+import path from 'node:path';
+import sharp from 'sharp';
+
+for (const file of fs.readdirSync('public', { recursive: true })) {
+  if (/\.(png|jpe?g)$/i.test(file)) {
+    const src = path.join('public', file);
+    await sharp(src).webp({ quality: 80 }).toFile(src.replace(/\.(png|jpe?g)$/i, '.webp'));
+  }
+}
+```
+Update all `<img src>` and CSS `url()` references, then delete the originals.
 
 **No `loading="lazy"` on images**
 Add to all below-fold images:
@@ -47,7 +84,7 @@ Add to all below-fold images:
 In Next.js, `next/image` lazy-loads by default. Add `priority` only to above-fold hero images.
 
 **Missing aspect ratio / dimensions**
-Every `<img>` must declare width + height to prevent CLS:
+Every `<img>` must declare width and height to prevent CLS:
 ```html
 <img src="..." width="400" height="300" alt="..." />
 ```
@@ -65,7 +102,7 @@ Or with CSS: `aspect-ratio: 4 / 3;` on the container.
 Download only needed weights from https://fontsource.org or use a variable font with a declared range.
 
 **No image CDN / compression**
-Cloudinary auto-format + compress:
+Cloudinary auto-format and compress:
 ```
 https://res.cloudinary.com/<cloud>/image/upload/f_auto,q_auto,w_800/<image>
 ```
@@ -74,12 +111,20 @@ In Next.js, configure `next.config.js`:
 images: { remotePatterns: [{ hostname: 'res.cloudinary.com' }] }
 ```
 
-**Missing `<link rel="preload">`**
+**Missing `<link rel="preload">` for images and fonts**
 Add to `<head>` for above-fold images and critical fonts:
 ```html
 <link rel="preload" as="image" href="/hero.webp" />
 <link rel="preload" as="font" href="/fonts/inter-400.woff2" type="font/woff2" crossorigin />
 ```
+
+**No style preloading**
+Load critical CSS early without blocking render:
+```html
+<link rel="preload" as="style" href="/styles/critical.css" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/styles/critical.css" /></noscript>
+```
+Or inline the above-the-fold CSS in a `<style>` tag in `<head>`. Frameworks such as Next.js already inline and preload CSS; mark the item Applied when the framework handles it.
 
 ---
 
@@ -89,12 +134,12 @@ Add to `<head>` for above-fold images and critical fonts:
 In Next.js App Router (`layout.tsx`):
 ```ts
 export const metadata: Metadata = {
-  title: 'Page Title — Site Name',
-  description: '150–160 char description.',
+  title: 'Page Title - Site Name',
+  description: '150-160 char description.',
   authors: [{ name: 'Author Name' }],
   openGraph: {
-    title: 'Page Title — Site Name',
-    description: '150–160 char description.',
+    title: 'Page Title - Site Name',
+    description: '150-160 char description.',
     url: 'https://example.com',
     images: [{ url: 'https://example.com/og.png', width: 1200, height: 630 }],
   },
@@ -103,8 +148,8 @@ export const metadata: Metadata = {
 
 **Missing favicon**
 Place both in `/public`:
-- `favicon.ico` (16×16, 32×32 multi-size ICO)
-- `favicon.png` (32×32 or 64×64 PNG)
+- `favicon.ico` (16x16 and 32x32 multi-size ICO)
+- `favicon.png` (32x32 or 64x64 PNG)
 
 Add to `<head>`:
 ```html
@@ -121,8 +166,10 @@ Sitemap: https://example.com/sitemap.xml
 ```
 
 **Missing sitemap.xml**
-Next.js App Router — create `app/sitemap.ts`:
+Next.js App Router - create `app/sitemap.ts`:
 ```ts
+import type { MetadataRoute } from 'next';
+
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: 'https://example.com', lastModified: new Date() },
@@ -137,11 +184,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
 ```
 In Next.js metadata: `alternates: { canonical: 'https://example.com/current-page' }`.
 
-**Google Search Console — manual step**
+**Google Search Console - manual step**
 1. Go to https://search.google.com/search-console
-2. Add property → enter site URL
+2. Add property and enter the site URL
 3. Verify via HTML tag or DNS record
-4. Submit sitemap: Sitemaps → enter `sitemap.xml` → Submit
+4. Submit sitemap: Sitemaps, enter `sitemap.xml`, Submit
 
 ---
 
@@ -151,66 +198,68 @@ In Next.js metadata: `alternates: { canonical: 'https://example.com/current-page
 Using Upstash Ratelimit (edge-compatible):
 ```ts
 import { Ratelimit } from '@upstash/ratelimit';
-const ratelimit = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '10 s') });
+import { Redis } from '@upstash/redis';
 
-const { success } = await ratelimit.limit(ip);
-if (!success) return new Response('Too many requests', { status: 429 });
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, '10 s'),
+});
+
+export async function POST(req: Request) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'anonymous';
+  const { success } = await ratelimit.limit(ip);
+  if (!success) return new Response('Too many requests', { status: 429 });
+  // ... handle the request
+}
 ```
+Apply a stricter limit to login, signup, password reset, and payment routes.
 
 **Server-side validation missing**
 Add Zod schema validation at the API boundary:
 ```ts
+import { z } from 'zod';
+
 const schema = z.object({ email: z.string().email(), name: z.string().min(1) });
-const result = schema.safeParse(req.body);
-if (!result.success) return res.status(400).json({ errors: result.error.flatten() });
+
+export async function POST(req: Request) {
+  const result = schema.safeParse(await req.json());
+  if (!result.success) {
+    return Response.json({ errors: result.error.flatten() }, { status: 400 });
+  }
+  // result.data is validated and typed
+}
 ```
 
+**Raw errors reach the client**
+Catch errors, log them on the server only, and return a generic structured response:
+```ts
+export async function POST(req: Request) {
+  try {
+    // ... handle the request
+    return Response.json({ ok: true });
+  } catch (err) {
+    console.error('POST /api/contact failed', err); // server log only
+    return Response.json({ error: 'Something went wrong. Please try again.' }, { status: 500 });
+  }
+}
+```
+Never return `err.message` or `err.stack` to the client in production.
+
 **RLS not enabled (Supabase)**
-In Supabase dashboard → Table Editor → select table → Enable RLS.
-Then add policies:
+In Supabase dashboard, Table Editor, select the table, Enable RLS. Then add policies:
 ```sql
 -- Users can only read their own rows
 create policy "Users see own data" on profiles
   for select using (auth.uid() = user_id);
 ```
-Verify: run `select * from pg_policies where tablename = 'profiles';` in SQL editor.
+Verify: run `select * from pg_policies where tablename = 'profiles';` in the SQL editor.
 
 **Broken links**
-Run a link checker:
+Run a link checker against the local dev server:
 ```bash
-npx linkinator https://localhost:3000 --recurse --skip "^mailto"
+npx linkinator http://localhost:3000 --recurse --skip "^mailto:"
 ```
 Fix 404 routes or update stale `href` values.
-
-**Exposed API keys in client code**
-Scan for leaks:
-```bash
-grep -r "sk_live\|service_role\|SECRET\|PRIVATE" --include="*.ts" --include="*.tsx" --include="*.js" src/
-```
-Move to server-side `process.env` (never prefix with `NEXT_PUBLIC_` for secrets).
-
-**HTTPS not enforced / mixed content**
-Search for mixed content:
-```bash
-grep -r "http://" --include="*.ts" --include="*.tsx" --include="*.css" src/
-```
-Replace all asset URLs with `https://` or protocol-relative `//`.
-
-**Missing security headers**
-Next.js — add to `next.config.js`:
-```js
-async headers() {
-  return [{
-    source: '/(.*)',
-    headers: [
-      { key: 'X-Content-Type-Options', value: 'nosniff' },
-      { key: 'X-Frame-Options', value: 'DENY' },
-      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-      { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-    ],
-  }];
-}
-```
 
 **No spam protection on public forms**
 Add Cloudflare Turnstile (free):
@@ -226,9 +275,13 @@ Verify server-side:
 ```ts
 const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
   method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ secret: process.env.TURNSTILE_SECRET_KEY, response: token }),
 });
+const outcome = await res.json();
+if (!outcome.success) return Response.json({ error: 'Verification failed' }, { status: 400 });
 ```
+A honeypot field is a lightweight alternative: add a hidden input that real users never fill, and reject any submission where it has a value.
 
 **Missing alt text on images**
 Every `<img>` must have `alt`:
@@ -239,18 +292,26 @@ Every `<img>` must have `alt`:
 <!-- Decorative image -->
 <img src="/divider.svg" alt="" role="presentation" />
 ```
-In Next.js, `next/image` requires `alt` by default — lint will catch missing ones.
+In Next.js, `next/image` requires `alt` by default, and the lint rule `jsx-a11y/alt-text` catches missing ones.
 
 ---
 
 ## Animations & Motion
 
 **Missing `prefers-reduced-motion` support**
-Wrap all GSAP / CSS animations in a motion check:
+With GSAP, use `matchMedia` so animations are created and reverted automatically:
+```ts
+const mm = gsap.matchMedia();
+mm.add('(prefers-reduced-motion: no-preference)', () => {
+  gsap.to('.hero', { y: -40, scrollTrigger: { trigger: '.hero', scrub: true } });
+});
+// on unmount: mm.revert();
+```
+Or check once:
 ```ts
 const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (!prefersReduced) {
-  gsap.to('.hero', { y: -40, scrollTrigger: { ... } });
+  gsap.to('.hero', { y: -40 });
 }
 ```
 CSS alternative:
@@ -267,7 +328,7 @@ useEffect(() => {
   const ctx = gsap.context(() => {
     gsap.to('.box', { x: 100, scrollTrigger: { trigger: '.box', start: 'top center' } });
   }, containerRef);
-  return () => ctx.revert(); // kills all animations and ScrollTriggers in context
+  return () => ctx.revert(); // kills all animations and ScrollTriggers in this context
 }, []);
 ```
 
@@ -280,25 +341,63 @@ gsap.registerPlugin(ScrollTrigger);
 ```
 
 **Parallax using `top`/`left` (layout thrash)**
-Replace with GPU-composited transform:
+Replace with a GPU-composited transform:
 ```ts
-// ❌ causes layout recalculation
+// BAD: causes layout recalculation
 element.style.top = `${offset}px`;
 
-// ✅ composited, no layout cost
+// GOOD: composited, no layout cost
 element.style.transform = `translateY(${offset}px)`;
 ```
 Disable parallax on mobile (adds jank on low-power devices):
 ```ts
-if (window.innerWidth > 768) { initParallax(); }
+if (window.matchMedia('(min-width: 769px)').matches) { initParallax(); }
+```
+
+**Horizontal scroll animation**
+For a plain horizontal scroller, use native scrolling with snap, and make it keyboard reachable:
+```html
+<div class="h-scroll" role="region" aria-label="Projects" tabindex="0">
+  <article>...</article>
+  <article>...</article>
+</div>
+```
+```css
+.h-scroll {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+}
+.h-scroll > * { flex: 0 0 min(80%, 24rem); scroll-snap-align: start; }
+.h-scroll:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+```
+For scroll-pinned horizontal sections built with GSAP ScrollTrigger, keep the pinned section's content reachable by keyboard and revert the trigger on unmount.
+
+**Stacked animation**
+Use `position: sticky` with an incrementing offset and z-index instead of manual scroll math:
+```html
+<section class="stack">
+  <article class="stack-card" style="--i: 1">...</article>
+  <article class="stack-card" style="--i: 2">...</article>
+  <article class="stack-card" style="--i: 3">...</article>
+</section>
+```
+```css
+.stack-card {
+  position: sticky;
+  top: calc(5rem + var(--i) * 1.5rem);
+  z-index: var(--i);
+}
 ```
 
 **Lenis not destroyed on unmount**
 ```ts
 useEffect(() => {
   const lenis = new Lenis({ duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
-  function raf(time: number) { lenis.raf(time); requestAnimationFrame(raf); }
-  const rafId = requestAnimationFrame(raf);
+  function raf(time: number) { lenis.raf(time); rafId = requestAnimationFrame(raf); }
+  let rafId = requestAnimationFrame(raf);
   return () => { lenis.destroy(); cancelAnimationFrame(rafId); };
 }, []);
 ```
@@ -306,6 +405,7 @@ useEffect(() => {
 **Three.js missing resize handler or cleanup**
 ```ts
 useEffect(() => {
+  // scene and camera are created earlier in this effect
   const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current! });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // clamp to 2
 
@@ -323,12 +423,13 @@ useEffect(() => {
   return () => {
     window.removeEventListener('resize', onResize);
     cancelAnimationFrame(rafId);
+    // dispose geometries, materials, and textures you created, then the renderer
     renderer.dispose();
   };
 }, []);
 ```
 
-**WebGL — no context loss handling**
+**WebGL - no context loss handling**
 ```ts
 canvas.addEventListener('webglcontextlost', (e) => {
   e.preventDefault();
@@ -348,10 +449,53 @@ Add a static fallback image inside the canvas container for unsupported browsers
 **Animating non-composited properties (causes layout)**
 Only animate `transform` and `opacity`. Flag any animation of `width`, `height`, `top`, `left`, `margin`, `padding`:
 ```ts
-// ❌ triggers layout on every frame
+// BAD: triggers layout on every frame
 gsap.to(el, { width: 200 });
 
-// ✅ composited only
+// GOOD: composited only
 gsap.to(el, { scaleX: 1.5, opacity: 0 });
 ```
 Use https://csstriggers.com to verify which properties trigger layout, paint, or composite only.
+
+---
+
+## Laravel / PHP equivalents
+
+**Rate limiting**
+```php
+// routes/web.php or routes/api.php
+Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:10,1');
+```
+Or define a named limiter:
+```php
+// app/Providers/AppServiceProvider.php, in boot()
+RateLimiter::for('forms', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+```
+
+**Server-side validation**
+```php
+// php artisan make:request ContactRequest
+public function rules(): array
+{
+    return [
+        'name'  => ['required', 'string', 'max:100'],
+        'email' => ['required', 'email', 'max:255'],
+    ];
+}
+```
+
+**Raw errors reach the client**
+Set `APP_DEBUG=false` and `APP_ENV=production` in the production `.env`. With debug on, Laravel returns stack traces to the browser.
+
+**Spam protection (Turnstile)**
+```php
+$response = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+    'secret'   => config('services.turnstile.secret'),
+    'response' => $request->input('cf-turnstile-response'),
+    'remoteip' => $request->ip(),
+]);
+
+if (! $response->json('success')) {
+    abort(422, 'Verification failed');
+}
+```
